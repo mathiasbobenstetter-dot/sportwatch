@@ -27,12 +27,12 @@ interface SportEvent {
 // ==========================================
 const COMPETITION_WEIGHTS: Record<string, number> = {
   // Fußball International & Top-Ligen
-  "UEFA Champions League": 100,
-  "World Cup": 100,
-  "Euro Championship": 100,
-  "UEFA Nations League": 85,
+  "UEFA Champions League": 80,
+  "World Cup": 80,
+  "Euro Championship": 80,
+  "UEFA Nations League": 75,
   "Bundesliga": 90,
-  "Premier League": 85,
+  "Premier League": 75,
   "DFB-Pokal": 80,
 
   // Radsport
@@ -221,7 +221,7 @@ export default function Home() {
       <header className="mb-8 border-b border-slate-800 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-emerald-400">
-            SportWatch 🏆
+            💣 itsdahias' TV Plan 💣
           </h1>
           <p className="text-sm text-slate-400 mt-1">{todayFormatted}</p>
         </div>

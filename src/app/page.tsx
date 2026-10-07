@@ -221,7 +221,8 @@ export default function Home() {
       <header className="mb-8 border-b border-slate-800 pb-4 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-emerald-400">
-            💣 itsdahias' TV Plan 💣
+            💣 Sport Guide 💣
+            by itsdahias
           </h1>
           <p className="text-sm text-slate-400 mt-1">{todayFormatted}</p>
         </div>

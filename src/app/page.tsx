@@ -218,18 +218,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 max-w-3xl mx-auto font-sans">
       {/* Header */}
-      <header className="mb-8 border-b border-slate-800 pb-4 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-emerald-400">
-            💣 Sport Guide 💣
-            by itsdahias
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">{todayFormatted}</p>
-        </div>
-        <span className="text-xs font-medium px-2.5 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-full">
-          Live-Guide
-        </span>
-      </header>
+      <header className="flex flex-col items-center justify-center py-4">
+  <h1 className="text-2xl font-bold tracking-tight">
+    💣TV Guide💣
+  </h1>
+  <p className="text-sm font-normal text-muted-foreground mt-1">
+    by itsdahias
+  </p>
+</header>
 
       {/* Loading & Error States */}
       {loading && (

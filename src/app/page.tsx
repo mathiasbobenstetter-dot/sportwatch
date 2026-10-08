@@ -174,6 +174,7 @@ export default function Home() {
   const [otherEvents, setOtherEvents] = useState<SportEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [longReads, setLongReads] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchAllEvents() {
@@ -184,6 +185,7 @@ export default function Home() {
   fetch("/api/nfl/today"),
   fetch("/api/nba/today"),
   fetch("/api/boxing/today"),
+  fetch("/api/reads"),
 ]);
 
         let combinedEvents: SportEvent[] = [];
@@ -237,31 +239,35 @@ export default function Home() {
           });
           combinedEvents = [...combinedEvents, ...nflEvents];
         }
-// 4. NBA
+// 4. Basketball (NBA & March Madness)
         if (nbaRes.ok) {
           const nbaData = await nbaRes.json();
           const nbaEvents: SportEvent[] = (nbaData.response || []).map((game: any) => {
             let bonusScore = -10; 
             const stage = (game.stage || game.league?.type || "").toLowerCase();
+            const leagueName = (game.league?.name || "").toLowerCase();
+            
             const isPlayoff = stage.includes("playoff") || stage.includes("finals");
+            const isMarchMadness = leagueName.includes("ncaa") || stage.includes("march madness");
 
             let timeStr = "";
+            let broadcaster = "DAZN / ProSieben MAXX";
+
             try {
               if (game.date) {
                 const gameDate = new Date(game.date);
-                timeStr = gameDate.toLocaleTimeString("de-DE", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-
+                timeStr = gameDate.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+                
                 const hour = gameDate.getHours();
                 const isGoodTvTime = hour >= 18 && hour <= 23; 
 
-                if (isPlayoff) {
+                if (isMarchMadness) {
+                  bonusScore += 30; // College Basketball im März pushen
+                  broadcaster = "ProSieben MAXX / DAZN / ESPN";
+                  if (isGoodTvTime) bonusScore += 40;
+                } else if (isPlayoff) {
                   bonusScore += 25; 
-                  if (isGoodTvTime) {
-                    bonusScore += 50; 
-                  }
+                  if (isGoodTvTime) bonusScore += 50; 
                 } else if (isGoodTvTime) {
                   bonusScore += 15; 
                 }
@@ -269,28 +275,31 @@ export default function Home() {
             } catch (e) {}
 
             return {
-              id: `nba-${game.id || Math.random()}`,
+              id: `bball-${game.id || Math.random()}`,
               time: timeStr,
-              sport: "🏀 NBA",
-              competition: "NBA",
+              sport: isMarchMadness ? "🏀 NCAA" : "🏀 NBA",
+              competition: isMarchMadness ? "March Madness" : "NBA",
               homeTeam: game.teams?.home?.name || "Unbekannt",
               awayTeam: game.teams?.away?.name || "Unbekannt",
               details: game.stage || "",
               bonusScore,
-              broadcasters: {
-                de: ["DAZN / ProSieben MAXX"],
-                usa: [],
-                uk: [],
-              },
+              broadcasters: { de: [broadcaster], usa: [], uk: [] },
             };
           });
           combinedEvents = [...combinedEvents, ...nbaEvents];
         }
+
         // 5. Boxen
-if (boxRes.ok) {
-  const boxData = await boxRes.json();
-  combinedEvents = [...combinedEvents, ...(boxData.events || [])];
-}
+        if (boxRes?.ok) {
+          const boxData = await boxRes.json();
+          combinedEvents = [...combinedEvents, ...(boxData.events || [])];
+        }
+
+        // 6. Long Reads speichern
+        if (readsRes?.ok) {
+          const readsData = await readsRes.json();
+          setLongReads(readsData.reads || []);
+        }
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)
@@ -523,6 +532,35 @@ if (boxRes.ok) {
                       )}
                     </div>
                   </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {/* SECTION 3: LONG READS */}
+          {longReads.length > 0 && (
+            <section className="mt-12 pt-8 border-t border-slate-800">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-emerald-400 text-lg">📰</span>
+                <h2 className="text-lg font-bold text-slate-100">
+                  Lesestoff für zwischendurch
+                </h2>
+              </div>
+              <div className="grid gap-3">
+                {longReads.map((read) => (
+                  <a
+                    key={read.id}
+                    href={read.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-slate-800/50 transition block shadow-md"
+                  >
+                    <h3 className="text-sm font-semibold text-slate-200 mb-1.5 leading-snug">
+                      {read.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono">
+                      aus {read.source}
+                    </p>
+                  </a>
                 ))}
               </div>
             </section>

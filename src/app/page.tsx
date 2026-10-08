@@ -161,32 +161,27 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
   useEffect(() => {
     async function fetchAllEvents() {
-      // 1. Datum von heute als Schlüssel nehmen (z.B. "08.10.2026")
       const todayStr = new Date().toLocaleDateString("de-DE");
       const cacheKey = `tv-guide-cache-${todayStr}`;
 
-      // 2. Prüfen, ob wir die Daten für HEUTE schon geladen haben
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         setTopEvents(parsed.topEvents);
         setOtherEvents(parsed.otherEvents);
-        setLongReads(parsed.longReads);
         setLoading(false);
-        return; // Hier brechen wir ab, kein API-Aufruf nötig!
+        return;
       }
 
       try {
-        const [footRes, cycRes, nflRes, nbaRes, boxRes, readsRes] = await Promise.all([
+        const [footRes, cycRes, nflRes, nbaRes, boxRes] = await Promise.all([
           fetch("/api/football/today"),
           fetch("/api/cycling/today"),
           fetch("/api/nfl/today"),
           fetch("/api/nba/today"),
           fetch("/api/boxing/today"),
-        
         ]);
 
         let combinedEvents: SportEvent[] = [];
@@ -297,25 +292,22 @@ export default function Home() {
           combinedEvents = [...combinedEvents, ...(boxData.events || [])];
         }
 
-        
-
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)
         );
 
-        const finalTop = sortedEvents.slice(0, 5);
-        const finalOther = sortedEvents.slice(5);
+        // HIER ANGEPASST: Top 4 statt Top 5
+        const finalTop = sortedEvents.slice(0, 4);
+        const finalOther = sortedEvents.slice(4);
 
         setTopEvents(finalTop);
         setOtherEvents(finalOther);
 
-        // 3. Daten lokal im Browser speichern, damit sie heute nicht mehr geladen werden müssen
-        localStorage.clear(); // Alte Tage löschen, damit kein Datenmüll entsteht
+        localStorage.clear();
         localStorage.setItem(cacheKey, JSON.stringify({
           topEvents: finalTop,
           otherEvents: finalOther,
-          
         }));
 
       } catch (err: any) {
@@ -355,23 +347,23 @@ export default function Home() {
         </div>
       )}
 
-      {/* NEU: Hinweis wenn keine Live-Events da sind */}
+      {/* Hinweis wenn keine Live-Events da sind */}
       {!loading && !error && !hasEvents && (
         <div className="p-8 mb-8 bg-slate-900/60 rounded-xl text-center text-slate-400 border border-slate-800/80">
           Heute stehen keine Events in deinen ausgewählten Ligen & Rennen an.
         </div>
       )}
 
-      {/* NEU: Live-Events werden nur gerendert, wenn welche da sind */}
+      {/* Live-Events werden nur gerendert, wenn welche da sind */}
       {!loading && !error && hasEvents && (
         <div className="space-y-8 mb-8">
-          {/* SECTION 1: TOP HIGHLIGHTS */}
+          {/* SECTION 1: MUST SEE (Top 4) */}
           {topEvents.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-amber-400 text-lg">🔥</span>
                 <h2 className="text-xl font-bold text-slate-100">
-                  Top Highlights des Tages
+                  Must See
                 </h2>
               </div>
 
@@ -472,7 +464,7 @@ export default function Home() {
           {otherEvents.length > 0 && (
             <section>
               <h2 className="text-lg font-semibold mb-3 text-slate-400 border-b border-slate-800 pb-2">
-                Weitere Partien & Rennen ({otherEvents.length})
+                Weitere Events ({otherEvents.length})
               </h2>
 
               <div className="grid gap-2.5">
@@ -544,8 +536,6 @@ export default function Home() {
           )}
         </div>
       )}
-
-  
     </main>
   );
 }

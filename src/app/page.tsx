@@ -178,11 +178,12 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       try {
-        const [footRes, cycRes, nflRes, nbaRes] = await Promise.all([
+ const [footRes, cycRes, nflRes, nbaRes, boxRes] = await Promise.all([
   fetch("/api/football/today"),
   fetch("/api/cycling/today"),
   fetch("/api/nfl/today"),
   fetch("/api/nba/today"),
+  fetch("/api/boxing/today"),
 ]);
 
         let combinedEvents: SportEvent[] = [];
@@ -285,6 +286,11 @@ export default function Home() {
           });
           combinedEvents = [...combinedEvents, ...nbaEvents];
         }
+        // 5. Boxen
+if (boxRes.ok) {
+  const boxData = await boxRes.json();
+  combinedEvents = [...combinedEvents, ...(boxData.events || [])];
+}
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)

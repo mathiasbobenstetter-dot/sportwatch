@@ -13,8 +13,11 @@ interface SportEvent {
   time?: string;
   sport: string;
   competition: string;
+  competitionLogo?: string; // Neu: Ligen-Wappen
   homeTeam?: string;
+  homeLogo?: string;        // Neu: Heim-Wappen
   awayTeam?: string;
+  awayLogo?: string;        // Neu: Auswärts-Wappen
   homeRank?: number | null;
   awayRank?: number | null;
   details?: string;
@@ -223,7 +226,9 @@ export default function Home() {
               sport: "🏈 NFL",
               competition: "NFL",
               homeTeam: game.teams?.home?.name || "Unbekannt",
+              homeLogo: game.teams?.home?.logo, // NFL Logo falls vorhanden
               awayTeam: game.teams?.away?.name || "Unbekannt",
+              awayLogo: game.teams?.away?.logo, // NFL Logo falls vorhanden
               details: game.game?.stage || "",
               bonusScore,
               broadcasters: {
@@ -276,8 +281,11 @@ export default function Home() {
               time: timeStr,
               sport: isMarchMadness ? "🏀 NCAA" : "🏀 NBA",
               competition: isMarchMadness ? "March Madness" : "NBA",
+              competitionLogo: game.league?.logo,
               homeTeam: game.teams?.home?.name || "Unbekannt",
+              homeLogo: game.teams?.home?.logo,
               awayTeam: game.teams?.away?.name || "Unbekannt",
+              awayLogo: game.teams?.away?.logo,
               details: game.stage || "",
               bonusScore,
               broadcasters: { de: [broadcaster], usa: [], uk: [] },
@@ -297,7 +305,6 @@ export default function Home() {
           (a, b) => getEventScore(b) - getEventScore(a)
         );
 
-        // HIER ANGEPASST: Top 4 statt Top 5
         const finalTop = sortedEvents.slice(0, 4);
         const finalOther = sortedEvents.slice(4);
 
@@ -383,9 +390,14 @@ export default function Home() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <span className="text-xl">{event.sport}</span>
-                          <span className="text-xs px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-md font-semibold flex items-center gap-1">
+                          
+                          {/* Ligen-Badge mit optionalem Logo */}
+                          <span className="text-xs px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-md font-semibold flex items-center gap-1.5">
+                            {event.competitionLogo && (
+                              <img src={event.competitionLogo} alt="" className="w-4 h-4 object-contain" />
+                            )}
                             {event.competition}
                             {vfbMatch && (
                               <span className="text-red-400 font-bold ml-1">
@@ -403,24 +415,32 @@ export default function Home() {
                               </span>
                             )}
                           </span>
-                          <div className="font-bold text-slate-100 text-base">
+
+                          {/* Teams & Logos */}
+                          <div className="font-bold text-slate-100 text-base flex items-center gap-2">
                             {event.homeTeam ? (
                               <>
-                                {event.homeTeam}{" "}
-                                {event.homeRank && (
-                                  <span className="text-xs text-emerald-400 font-mono">
-                                    ({event.homeRank}.)
-                                  </span>
-                                )}{" "}
-                                <span className="text-slate-400 font-normal mx-1">
-                                  vs
-                                </span>{" "}
-                                {event.awayTeam}{" "}
-                                {event.awayRank && (
-                                  <span className="text-xs text-emerald-400 font-mono">
-                                    ({event.awayRank}.)
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  {event.homeLogo && <img src={event.homeLogo} alt="" className="w-5 h-5 object-contain" />}
+                                  <span>{event.homeTeam}</span>
+                                  {event.homeRank && (
+                                    <span className="text-xs text-emerald-400 font-mono">
+                                      ({event.homeRank}.)
+                                    </span>
+                                  )}
+                                </div>
+
+                                <span className="text-slate-400 font-normal mx-1">vs</span>
+
+                                <div className="flex items-center gap-1.5">
+                                  {event.awayLogo && <img src={event.awayLogo} alt="" className="w-5 h-5 object-contain" />}
+                                  <span>{event.awayTeam}</span>
+                                  {event.awayRank && (
+                                    <span className="text-xs text-emerald-400 font-mono">
+                                      ({event.awayRank}.)
+                                    </span>
+                                  )}
+                                </div>
                               </>
                             ) : (
                               <span>{event.details}</span>
@@ -474,29 +494,38 @@ export default function Home() {
                     className="p-3.5 bg-slate-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition flex flex-col gap-2.5"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
                         <span className="text-base">{event.sport}</span>
-                        <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-medium">
+                        
+                        <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-medium flex items-center gap-1">
+                          {event.competitionLogo && <img src={event.competitionLogo} alt="" className="w-3.5 h-3.5 object-contain" />}
                           {event.competition}
                         </span>
-                        <div className="font-medium text-slate-200 text-sm">
+
+                        <div className="font-medium text-slate-200 text-sm flex items-center gap-2">
                           {event.homeTeam ? (
                             <>
-                              {event.homeTeam}{" "}
-                              {event.homeRank && (
-                                <span className="text-xs text-slate-400 font-mono">
-                                  ({event.homeRank}.)
-                                </span>
-                              )}{" "}
-                              <span className="text-slate-500 font-normal mx-1">
-                                vs
-                              </span>{" "}
-                              {event.awayTeam}{" "}
-                              {event.awayRank && (
-                                <span className="text-xs text-slate-400 font-mono">
-                                  ({event.awayRank}.)
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {event.homeLogo && <img src={event.homeLogo} alt="" className="w-4 h-4 object-contain" />}
+                                <span>{event.homeTeam}</span>
+                                {event.homeRank && (
+                                  <span className="text-xs text-slate-400 font-mono">
+                                    ({event.homeRank}.)
+                                  </span>
+                                )}
+                              </div>
+
+                              <span className="text-slate-500 font-normal mx-1">vs</span>
+
+                              <div className="flex items-center gap-1">
+                                {event.awayLogo && <img src={event.awayLogo} alt="" className="w-4 h-4 object-contain" />}
+                                <span>{event.awayTeam}</span>
+                                {event.awayRank && (
+                                  <span className="text-xs text-slate-400 font-mono">
+                                    ({event.awayRank}.)
+                                  </span>
+                                )}
+                              </div>
                             </>
                           ) : (
                             <span>{event.details}</span>

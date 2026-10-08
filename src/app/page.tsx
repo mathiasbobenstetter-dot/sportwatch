@@ -160,7 +160,7 @@ export default function Home() {
   const [otherEvents, setOtherEvents] = useState<SportEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [longReads, setLongReads] = useState<any[]>([]);
+
 
   useEffect(() => {
     async function fetchAllEvents() {
@@ -186,7 +186,7 @@ export default function Home() {
           fetch("/api/nfl/today"),
           fetch("/api/nba/today"),
           fetch("/api/boxing/today"),
-          fetch("/api/reads"),
+        
         ]);
 
         let combinedEvents: SportEvent[] = [];
@@ -297,13 +297,7 @@ export default function Home() {
           combinedEvents = [...combinedEvents, ...(boxData.events || [])];
         }
 
-        // 6. Long Reads speichern
-        let fetchedReads = [];
-        if (readsRes?.ok) {
-          const readsData = await readsRes.json();
-          fetchedReads = readsData.reads || [];
-          setLongReads(fetchedReads);
-        }
+        
 
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
@@ -321,7 +315,7 @@ export default function Home() {
         localStorage.setItem(cacheKey, JSON.stringify({
           topEvents: finalTop,
           otherEvents: finalOther,
-          longReads: fetchedReads
+          
         }));
 
       } catch (err: any) {
@@ -551,35 +545,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* NEU: SECTION 3 (LONG READS) - Jetzt außerhalb der Live-Events! */}
-      {!loading && !error && longReads.length > 0 && (
-        <section className="pt-8 border-t border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-emerald-400 text-lg">📰</span>
-            <h2 className="text-lg font-bold text-slate-100">
-              Lesestoff für zwischendurch
-            </h2>
-          </div>
-          <div className="grid gap-3">
-            {longReads.map((read) => (
-              <a
-                key={read.id}
-                href={read.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-slate-800/50 transition block shadow-md"
-              >
-                <h3 className="text-sm font-semibold text-slate-200 mb-1.5 leading-snug">
-                  {read.title}
-                </h3>
-                <p className="text-xs text-slate-400 font-mono">
-                  aus {read.source}
-                </p>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
+  
     </main>
   );
 }

@@ -165,7 +165,6 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       try {
-        // HIER WAR DER FEHLER: readsRes hat in den eckigen Klammern gefehlt!
         const [footRes, cycRes, nflRes, nbaRes, boxRes, readsRes] = await Promise.all([
           fetch("/api/football/today"),
           fetch("/api/cycling/today"),
@@ -306,13 +305,6 @@ export default function Home() {
     fetchAllEvents();
   }, []);
 
-  const todayFormatted = new Date().toLocaleDateString("de-DE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   const hasEvents = topEvents.length > 0 || otherEvents.length > 0;
 
   return (
@@ -340,14 +332,16 @@ export default function Home() {
         </div>
       )}
 
+      {/* NEU: Hinweis wenn keine Live-Events da sind */}
       {!loading && !error && !hasEvents && (
-        <div className="p-8 bg-slate-900/60 rounded-xl text-center text-slate-400 border border-slate-800/80">
+        <div className="p-8 mb-8 bg-slate-900/60 rounded-xl text-center text-slate-400 border border-slate-800/80">
           Heute stehen keine Events in deinen ausgewählten Ligen & Rennen an.
         </div>
       )}
 
+      {/* NEU: Live-Events werden nur gerendert, wenn welche da sind */}
       {!loading && !error && hasEvents && (
-        <div className="space-y-8">
+        <div className="space-y-8 mb-8">
           {/* SECTION 1: TOP HIGHLIGHTS */}
           {topEvents.length > 0 && (
             <section>
@@ -525,37 +519,37 @@ export default function Home() {
               </div>
             </section>
           )}
-
-          {/* SECTION 3: LONG READS */}
-          {longReads.length > 0 && (
-            <section className="mt-12 pt-8 border-t border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-emerald-400 text-lg">📰</span>
-                <h2 className="text-lg font-bold text-slate-100">
-                  Lesestoff für zwischendurch
-                </h2>
-              </div>
-              <div className="grid gap-3">
-                {longReads.map((read) => (
-                  <a
-                    key={read.id}
-                    href={read.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-slate-800/50 transition block shadow-md"
-                  >
-                    <h3 className="text-sm font-semibold text-slate-200 mb-1.5 leading-snug">
-                      {read.title}
-                    </h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      aus {read.source}
-                    </p>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
+      )}
+
+      {/* NEU: SECTION 3 (LONG READS) - Jetzt außerhalb der Live-Events! */}
+      {!loading && !error && longReads.length > 0 && (
+        <section className="pt-8 border-t border-slate-800">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-emerald-400 text-lg">📰</span>
+            <h2 className="text-lg font-bold text-slate-100">
+              Lesestoff für zwischendurch
+            </h2>
+          </div>
+          <div className="grid gap-3">
+            {longReads.map((read) => (
+              <a
+                key={read.id}
+                href={read.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-slate-800/50 transition block shadow-md"
+              >
+                <h3 className="text-sm font-semibold text-slate-200 mb-1.5 leading-snug">
+                  {read.title}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono">
+                  aus {read.source}
+                </p>
+              </a>
+            ))}
+          </div>
+        </section>
       )}
     </main>
   );

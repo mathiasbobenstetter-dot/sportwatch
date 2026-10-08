@@ -178,11 +178,12 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       try {
-        const [footRes, cycRes, nflRes] = await Promise.all([
-          fetch("/api/football/today"),
-          fetch("/api/cycling/today"),
-          fetch("/api/nfl/today"),
-        ]);
+        const [footRes, cycRes, nflRes, nbaRes] = await Promise.all([
+  fetch("/api/football/today"),
+  fetch("/api/cycling/today"),
+  fetch("/api/nfl/today"),
+  fetch("/api/nba/today"),
+]);
 
         let combinedEvents: SportEvent[] = [];
 
@@ -235,7 +236,55 @@ export default function Home() {
           });
           combinedEvents = [...combinedEvents, ...nflEvents];
         }
+// 4. NBA
+        if (nbaRes.ok) {
+          const nbaData = await nbaRes.json();
+          const nbaEvents: SportEvent[] = (nbaData.response || []).map((game: any) => {
+            let bonusScore = -10; 
+            const stage = (game.stage || game.league?.type || "").toLowerCase();
+            const isPlayoff = stage.includes("playoff") || stage.includes("finals");
 
+            let timeStr = "";
+            try {
+              if (game.date) {
+                const gameDate = new Date(game.date);
+                timeStr = gameDate.toLocaleTimeString("de-DE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                const hour = gameDate.getHours();
+                const isGoodTvTime = hour >= 18 && hour <= 23; 
+
+                if (isPlayoff) {
+                  bonusScore += 25; 
+                  if (isGoodTvTime) {
+                    bonusScore += 50; 
+                  }
+                } else if (isGoodTvTime) {
+                  bonusScore += 15; 
+                }
+              }
+            } catch (e) {}
+
+            return {
+              id: `nba-${game.id || Math.random()}`,
+              time: timeStr,
+              sport: "🏀 NBA",
+              competition: "NBA",
+              homeTeam: game.teams?.home?.name || "Unbekannt",
+              awayTeam: game.teams?.away?.name || "Unbekannt",
+              details: game.stage || "",
+              bonusScore,
+              broadcasters: {
+                de: ["DAZN / ProSieben MAXX"],
+                usa: [],
+                uk: [],
+              },
+            };
+          });
+          combinedEvents = [...combinedEvents, ...nbaEvents];
+        }
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)

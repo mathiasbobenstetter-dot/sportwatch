@@ -1,3 +1,10 @@
+Ich habe den Fehler gefunden!
+
+In deinem Promise.all-Block rufst du zwar 6 APIs ab (inklusive /api/reads), aber du definierst oben in der eckigen Klammer nur 5 Variablen. Die Variable readsRes fehlt dort. Wenn der Code dann weiter unten versucht, die Long Reads mit if (readsRes?.ok) zu verarbeiten, stürzt die Seite ab, weil sie die Variable nicht kennt.
+
+Hier ist der komplett korrigierte Code für deine src/app/page.tsx. Du kannst einfach alles in deiner Datei markieren und hiermit überschreiben:
+
+TypeScript
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,14 +27,13 @@ interface SportEvent {
   details?: string;
   category?: string;
   broadcasters: Broadcasters;
-  bonusScore?: number; // Neu: Für flexible Extra-Punkte (z.B. NFL Playoffs)
+  bonusScore?: number;
 }
 
 // ==========================================
 // 1. WETTBEWERBS-GEWICHTUNG
 // ==========================================
 const COMPETITION_WEIGHTS: Record<string, number> = {
-  // Fußball International & Top-Ligen
   "UEFA Champions League": 80,
   "World Cup": 80,
   "Euro Championship": 80,
@@ -35,18 +41,12 @@ const COMPETITION_WEIGHTS: Record<string, number> = {
   "Bundesliga": 90,
   "Premier League": 75,
   "DFB-Pokal": 80,
-
-  // Radsport
-  "Grand Tour": 85,         // Tour de France, Giro, Vuelta
-  "Klassiker": 80,          // Paris-Roubaix, Flandern etc.
+  "Grand Tour": 85,
+  "Klassiker": 80,
   "Monument": 80,
-
-  // US-Sports & Boxen
-  "NFL": 80,                // American Football
-  "NBA": 75,                // Basketball
-  "Boxing World Championship": 75, // Titelkämpfe
-
-  // Untere Ligen & Junioren
+  "NFL": 80,
+  "NBA": 75,
+  "Boxing World Championship": 75,
   "2. Bundesliga": 70,
   "UEFA European Under-21 Championship": 65,
   "FIFA U-20 World Cup": 60,
@@ -106,11 +106,9 @@ function isCLHeavyweightDuel(event: SportEvent): boolean {
 // 4. FOKUS-DERBYS (Nur DE & UK)
 // ==========================================
 const RELEVANT_DERBIES: [string, string][] = [
-  // Deutschland
   ["Bayern", "Dortmund"],
   ["Dortmund", "Schalke"],
   ["Stuttgart", "Karlsruhe"],
-  // England
   ["Arsenal", "Tottenham"],
   ["Liverpool", "Manchester United"],
   ["Manchester City", "Manchester United"],
@@ -136,27 +134,22 @@ function getEventScore(event: SportEvent): number {
     score = Math.max(score, COMPETITION_WEIGHTS[event.category]);
   }
 
-  // Bonus: Dynamische Zusatzpunkte (z.B. NFL Playoffs)
   if (event.bonusScore) {
     score += event.bonusScore;
   }
 
-  // Bonus 0: VfB Stuttgart Spiele (+1000 Punkte -> GARANTIERT Platz 1)
   if (isVfBStuttgart(event.homeTeam, event.awayTeam)) {
     score += 1000;
   }
 
-  // Bonus 1: Champions League Duell von 2 Schwergewichten (+40 Pkt)
   if (isCLHeavyweightDuel(event)) {
     score += 40;
   }
 
-  // Bonus 2: Relevantes Derby in DE/ENG (+30 Pkt)
   if (isDerby(event.homeTeam, event.awayTeam)) {
     score += 30;
   }
 
-  // Bonus 3: Liga-Spitzenduell (+25 Pkt wenn beide Teams Top 3)
   if (
     event.homeRank &&
     event.awayRank &&
@@ -179,14 +172,15 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       try {
- const [footRes, cycRes, nflRes, nbaRes, boxRes] = await Promise.all([
-  fetch("/api/football/today"),
-  fetch("/api/cycling/today"),
-  fetch("/api/nfl/today"),
-  fetch("/api/nba/today"),
-  fetch("/api/boxing/today"),
-  fetch("/api/reads"),
-]);
+        // HIER WAR DER FEHLER: readsRes hat in den eckigen Klammern gefehlt!
+        const [footRes, cycRes, nflRes, nbaRes, boxRes, readsRes] = await Promise.all([
+          fetch("/api/football/today"),
+          fetch("/api/cycling/today"),
+          fetch("/api/nfl/today"),
+          fetch("/api/nba/today"),
+          fetch("/api/boxing/today"),
+          fetch("/api/reads"),
+        ]);
 
         let combinedEvents: SportEvent[] = [];
 
@@ -231,7 +225,7 @@ export default function Home() {
               details: game.game?.stage || "",
               bonusScore,
               broadcasters: {
-                de: ["RTL / DAZN"], // NFL Deutschland Sender
+                de: ["RTL / DAZN"], 
                 usa: [],
                 uk: [],
               },
@@ -239,7 +233,8 @@ export default function Home() {
           });
           combinedEvents = [...combinedEvents, ...nflEvents];
         }
-// 4. Basketball (NBA & March Madness)
+
+        // 4. Basketball (NBA & March Madness)
         if (nbaRes.ok) {
           const nbaData = await nbaRes.json();
           const nbaEvents: SportEvent[] = (nbaData.response || []).map((game: any) => {
@@ -262,7 +257,7 @@ export default function Home() {
                 const isGoodTvTime = hour >= 18 && hour <= 23; 
 
                 if (isMarchMadness) {
-                  bonusScore += 30; // College Basketball im März pushen
+                  bonusScore += 30; 
                   broadcaster = "ProSieben MAXX / DAZN / ESPN";
                   if (isGoodTvTime) bonusScore += 40;
                 } else if (isPlayoff) {
@@ -300,6 +295,7 @@ export default function Home() {
           const readsData = await readsRes.json();
           setLongReads(readsData.reads || []);
         }
+
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)
@@ -536,6 +532,7 @@ export default function Home() {
               </div>
             </section>
           )}
+
           {/* SECTION 3: LONG READS */}
           {longReads.length > 0 && (
             <section className="mt-12 pt-8 border-t border-slate-800">

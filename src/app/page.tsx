@@ -1,10 +1,3 @@
-Ich habe den Fehler gefunden!
-
-In deinem Promise.all-Block rufst du zwar 6 APIs ab (inklusive /api/reads), aber du definierst oben in der eckigen Klammer nur 5 Variablen. Die Variable readsRes fehlt dort. Wenn der Code dann weiter unten versucht, die Long Reads mit if (readsRes?.ok) zu verarbeiten, stürzt die Seite ab, weil sie die Variable nicht kennt.
-
-Hier ist der komplett korrigierte Code für deine src/app/page.tsx. Du kannst einfach alles in deiner Datei markieren und hiermit überschreiben:
-
-TypeScript
 "use client";
 
 import { useEffect, useState } from "react";

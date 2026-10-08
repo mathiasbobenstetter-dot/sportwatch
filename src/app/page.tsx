@@ -20,6 +20,7 @@ interface SportEvent {
   details?: string;
   category?: string;
   broadcasters: Broadcasters;
+  bonusScore?: number; // Neu: Für flexible Extra-Punkte (z.B. NFL Playoffs)
 }
 
 // ==========================================
@@ -135,6 +136,11 @@ function getEventScore(event: SportEvent): number {
     score = Math.max(score, COMPETITION_WEIGHTS[event.category]);
   }
 
+  // Bonus: Dynamische Zusatzpunkte (z.B. NFL Playoffs)
+  if (event.bonusScore) {
+    score += event.bonusScore;
+  }
+
   // Bonus 0: VfB Stuttgart Spiele (+1000 Punkte -> GARANTIERT Platz 1)
   if (isVfBStuttgart(event.homeTeam, event.awayTeam)) {
     score += 1000;
@@ -172,21 +178,62 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       try {
-        const [footRes, cycRes] = await Promise.all([
+        const [footRes, cycRes, nflRes] = await Promise.all([
           fetch("/api/football/today"),
           fetch("/api/cycling/today"),
+          fetch("/api/nfl/today"),
         ]);
 
         let combinedEvents: SportEvent[] = [];
 
+        // 1. Fußball
         if (footRes.ok) {
           const footData = await footRes.json();
           combinedEvents = [...combinedEvents, ...(footData.events || [])];
         }
 
+        // 2. Radsport
         if (cycRes.ok) {
           const cycData = await cycRes.json();
           combinedEvents = [...combinedEvents, ...(cycData.events || [])];
+        }
+
+        // 3. NFL
+        if (nflRes.ok) {
+          const nflData = await nflRes.json();
+          const nflEvents: SportEvent[] = (nflData.response || []).map((game: any) => {
+            let bonusScore = 0;
+            const stage = (game.game?.stage || "").toLowerCase();
+            if (stage.includes("super bowl")) bonusScore = 100;
+            else if (stage.includes("playoff")) bonusScore = 50;
+
+            let timeStr = "";
+            try {
+              if (game.game?.date?.date) {
+                timeStr = new Date(game.game.date.date).toLocaleTimeString("de-DE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+              }
+            } catch (e) {}
+
+            return {
+              id: `nfl-${game.game?.id || Math.random()}`,
+              time: timeStr,
+              sport: "🏈 NFL",
+              competition: "NFL",
+              homeTeam: game.teams?.home?.name || "Unbekannt",
+              awayTeam: game.teams?.away?.name || "Unbekannt",
+              details: game.game?.stage || "",
+              bonusScore,
+              broadcasters: {
+                de: ["RTL / DAZN"], // NFL Deutschland Sender
+                usa: [],
+                uk: [],
+              },
+            };
+          });
+          combinedEvents = [...combinedEvents, ...nflEvents];
         }
 
         // Sortierung nach dynamischem Score
@@ -219,13 +266,13 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 max-w-3xl mx-auto font-sans">
       {/* Header */}
       <header className="flex flex-col items-center justify-center py-4">
-  <h1 className="text-2xl font-bold tracking-tight">
-    💣TV Guide💣
-  </h1>
-  <p className="text-sm font-normal text-muted-foreground mt-1">
-    by itsdahias
-  </p>
-</header>
+        <h1 className="text-2xl font-bold tracking-tight">
+          💣TV Guide💣
+        </h1>
+        <p className="text-sm font-normal text-muted-foreground mt-1">
+          by itsdahias
+        </p>
+      </header>
 
       {/* Loading & Error States */}
       {loading && (

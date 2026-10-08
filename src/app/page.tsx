@@ -13,11 +13,11 @@ interface SportEvent {
   time?: string;
   sport: string;
   competition: string;
-  competitionLogo?: string; // Neu: Ligen-Wappen
+  competitionLogo?: string;
   homeTeam?: string;
-  homeLogo?: string;        // Neu: Heim-Wappen
+  homeLogo?: string;
   awayTeam?: string;
-  awayLogo?: string;        // Neu: Auswärts-Wappen
+  awayLogo?: string;
   homeRank?: number | null;
   awayRank?: number | null;
   details?: string;
@@ -121,7 +121,29 @@ function isDerby(home = "", away = ""): boolean {
 }
 
 // ==========================================
-// 5. SCORE-BERECHNUNG
+// 5. HELPER: LÄUFT DAS EVENT GERADE?
+// ==========================================
+function isEventLive(timeStr?: string): boolean {
+  if (!timeStr) return false;
+  try {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return false;
+
+    const now = new Date();
+    const eventTime = new Date();
+    eventTime.setHours(hours, minutes, 0, 0);
+
+    const diffMinutes = (now.getTime() - eventTime.getTime()) / (1000 * 60);
+    
+    // Läuft, wenn es vor max. 15 Minuten begonnen hat und seit höchstens 2,5 Stunden (150 Min) läuft
+    return diffMinutes >= -15 && diffMinutes <= 150;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ==========================================
+// 6. SCORE-BERECHNUNG
 // ==========================================
 function getEventScore(event: SportEvent): number {
   let score = COMPETITION_WEIGHTS[event.competition] || 10;
@@ -226,9 +248,9 @@ export default function Home() {
               sport: "🏈 NFL",
               competition: "NFL",
               homeTeam: game.teams?.home?.name || "Unbekannt",
-              homeLogo: game.teams?.home?.logo, // NFL Logo falls vorhanden
+              homeLogo: game.teams?.home?.logo,
               awayTeam: game.teams?.away?.name || "Unbekannt",
-              awayLogo: game.teams?.away?.logo, // NFL Logo falls vorhanden
+              awayLogo: game.teams?.away?.logo,
               details: game.game?.stage || "",
               bonusScore,
               broadcasters: {
@@ -379,12 +401,15 @@ export default function Home() {
                   const vfbMatch = isVfBStuttgart(event.homeTeam, event.awayTeam);
                   const derbyMatch = isDerby(event.homeTeam, event.awayTeam);
                   const clHeavyMatch = isCLHeavyweightDuel(event);
+                  const isLive = isEventLive(event.time); // Prüft, ob es gerade läuft
 
                   return (
                     <div
                       key={event.id}
                       className={`p-4 bg-slate-900 border-2 rounded-xl shadow-lg transition flex flex-col gap-3 ${
-                        vfbMatch
+                        isLive
+                          ? "border-red-500 shadow-red-950/50 animate-pulse" // Roter Pulsier-Rahmen wenn live
+                          : vfbMatch
                           ? "border-red-500/60 shadow-red-950/30"
                           : "border-emerald-500/30 shadow-emerald-950/20 hover:border-emerald-500/60"
                       }`}
@@ -448,10 +473,18 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {event.time && (
-                          <div className="text-sm font-mono font-semibold text-emerald-400 bg-emerald-950/80 px-3 py-1 border border-emerald-700/60 rounded-lg shrink-0">
-                            {event.time} Uhr
+                        {/* Uhrzeit oder LIVE-Badge */}
+                        {isLive ? (
+                          <div className="text-xs font-mono font-bold text-white bg-red-600 px-3 py-1 rounded-lg shrink-0 flex items-center gap-1.5 shadow-md animate-bounce">
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            LIVE NOW
                           </div>
+                        ) : (
+                          event.time && (
+                            <div className="text-sm font-mono font-semibold text-emerald-400 bg-emerald-950/80 px-3 py-1 border border-emerald-700/60 rounded-lg shrink-0">
+                              {event.time} Uhr
+                            </div>
+                          )
                         )}
                       </div>
 
@@ -488,78 +521,92 @@ export default function Home() {
               </h2>
 
               <div className="grid gap-2.5">
-                {otherEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-3.5 bg-slate-900/60 border border-slate-800/80 rounded-xl hover:border-slate-700 transition flex flex-col gap-2.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="text-base">{event.sport}</span>
-                        
-                        <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-medium flex items-center gap-1">
-                          {event.competitionLogo && <img src={event.competitionLogo} alt="" className="w-3.5 h-3.5 object-contain" />}
-                          {event.competition}
-                        </span>
+                {otherEvents.map((event) => {
+                  const isLive = isEventLive(event.time);
 
-                        <div className="font-medium text-slate-200 text-sm flex items-center gap-2">
-                          {event.homeTeam ? (
-                            <>
-                              <div className="flex items-center gap-1">
-                                {event.homeLogo && <img src={event.homeLogo} alt="" className="w-4 h-4 object-contain" />}
-                                <span>{event.homeTeam}</span>
-                                {event.homeRank && (
-                                  <span className="text-xs text-slate-400 font-mono">
-                                    ({event.homeRank}.)
-                                  </span>
-                                )}
-                              </div>
+                  return (
+                    <div
+                      key={event.id}
+                      className={`p-3.5 bg-slate-900/60 border rounded-xl transition flex flex-col gap-2.5 ${
+                        isLive ? "border-red-500/80 bg-red-950/20" : "border-slate-800/80 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-base">{event.sport}</span>
+                          
+                          <span className="text-xs px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-medium flex items-center gap-1">
+                            {event.competitionLogo && <img src={event.competitionLogo} alt="" className="w-3.5 h-3.5 object-contain" />}
+                            {event.competition}
+                          </span>
 
-                              <span className="text-slate-500 font-normal mx-1">vs</span>
+                          <div className="font-medium text-slate-200 text-sm flex items-center gap-2">
+                            {event.homeTeam ? (
+                              <>
+                                <div className="flex items-center gap-1">
+                                  {event.homeLogo && <img src={event.homeLogo} alt="" className="w-4 h-4 object-contain" />}
+                                  <span>{event.homeTeam}</span>
+                                  {event.homeRank && (
+                                    <span className="text-xs text-slate-400 font-mono">
+                                      ({event.homeRank}.)
+                                    </span>
+                                  )}
+                                </div>
 
-                              <div className="flex items-center gap-1">
-                                {event.awayLogo && <img src={event.awayLogo} alt="" className="w-4 h-4 object-contain" />}
-                                <span>{event.awayTeam}</span>
-                                {event.awayRank && (
-                                  <span className="text-xs text-slate-400 font-mono">
-                                    ({event.awayRank}.)
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <span>{event.details}</span>
-                          )}
+                                <span className="text-slate-500 font-normal mx-1">vs</span>
+
+                                <div className="flex items-center gap-1">
+                                  {event.awayLogo && <img src={event.awayLogo} alt="" className="w-4 h-4 object-contain" />}
+                                  <span>{event.awayTeam}</span>
+                                  {event.awayRank && (
+                                    <span className="text-xs text-slate-400 font-mono">
+                                      ({event.awayRank}.)
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <span>{event.details}</span>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Uhrzeit oder LIVE-Badge für "Weitere Events" */}
+                        {isLive ? (
+                          <div className="text-[11px] font-mono font-bold text-white bg-red-600 px-2.5 py-0.5 rounded shrink-0 flex items-center gap-1 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                            LIVE
+                          </div>
+                        ) : (
+                          event.time && (
+                            <div className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded shrink-0">
+                              {event.time} Uhr
+                            </div>
+                          )
+                        )}
                       </div>
 
-                      {event.time && (
-                        <div className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded shrink-0">
-                          {event.time} Uhr
-                        </div>
-                      )}
+                      {/* Broadcaster Badges */}
+                      <div className="pt-1.5 border-t border-slate-800/40 flex flex-wrap gap-1.5 text-[11px] text-slate-400">
+                        {event.broadcasters?.de?.length > 0 && (
+                          <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
+                            🇩🇪 {event.broadcasters.de.join(", ")}
+                          </span>
+                        )}
+                        {event.broadcasters?.usa?.length > 0 && (
+                          <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
+                            🇺🇸 {event.broadcasters.usa.join(", ")}
+                          </span>
+                        )}
+                        {event.broadcasters?.uk?.length > 0 && (
+                          <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
+                            🇬🇧 {event.broadcasters.uk.join(", ")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Broadcaster Badges */}
-                    <div className="pt-1.5 border-t border-slate-800/40 flex flex-wrap gap-1.5 text-[11px] text-slate-400">
-                      {event.broadcasters?.de?.length > 0 && (
-                        <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
-                          🇩🇪 {event.broadcasters.de.join(", ")}
-                        </span>
-                      )}
-                      {event.broadcasters?.usa?.length > 0 && (
-                        <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
-                          🇺🇸 {event.broadcasters.usa.join(", ")}
-                        </span>
-                      )}
-                      {event.broadcasters?.uk?.length > 0 && (
-                        <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">
-                          🇬🇧 {event.broadcasters.uk.join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

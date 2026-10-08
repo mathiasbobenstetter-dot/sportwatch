@@ -164,6 +164,21 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchAllEvents() {
+      // 1. Datum von heute als Schlüssel nehmen (z.B. "08.10.2026")
+      const todayStr = new Date().toLocaleDateString("de-DE");
+      const cacheKey = `tv-guide-cache-${todayStr}`;
+
+      // 2. Prüfen, ob wir die Daten für HEUTE schon geladen haben
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        setTopEvents(parsed.topEvents);
+        setOtherEvents(parsed.otherEvents);
+        setLongReads(parsed.longReads);
+        setLoading(false);
+        return; // Hier brechen wir ab, kein API-Aufruf nötig!
+      }
+
       try {
         const [footRes, cycRes, nflRes, nbaRes, boxRes, readsRes] = await Promise.all([
           fetch("/api/football/today"),
@@ -283,9 +298,11 @@ export default function Home() {
         }
 
         // 6. Long Reads speichern
+        let fetchedReads = [];
         if (readsRes?.ok) {
           const readsData = await readsRes.json();
-          setLongReads(readsData.reads || []);
+          fetchedReads = readsData.reads || [];
+          setLongReads(fetchedReads);
         }
 
         // Sortierung nach dynamischem Score
@@ -293,8 +310,20 @@ export default function Home() {
           (a, b) => getEventScore(b) - getEventScore(a)
         );
 
-        setTopEvents(sortedEvents.slice(0, 5));
-        setOtherEvents(sortedEvents.slice(5));
+        const finalTop = sortedEvents.slice(0, 5);
+        const finalOther = sortedEvents.slice(5);
+
+        setTopEvents(finalTop);
+        setOtherEvents(finalOther);
+
+        // 3. Daten lokal im Browser speichern, damit sie heute nicht mehr geladen werden müssen
+        localStorage.clear(); // Alte Tage löschen, damit kein Datenmüll entsteht
+        localStorage.setItem(cacheKey, JSON.stringify({
+          topEvents: finalTop,
+          otherEvents: finalOther,
+          longReads: fetchedReads
+        }));
+
       } catch (err: any) {
         setError("Fehler beim Laden der Tages-Highlights.");
       } finally {

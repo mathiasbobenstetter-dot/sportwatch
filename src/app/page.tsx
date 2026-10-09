@@ -41,6 +41,7 @@ const COMPETITION_WEIGHTS: Record<string, number> = {
   "Klassiker": 80,
   "Monument": 80,
   "NFL": 80,
+  "NCAA Football": 75, // NEU: College Football
   "NBA": 75,
   "Boxing World Championship": 75,
   "2. Bundesliga": 70,
@@ -99,15 +100,24 @@ function isCLHeavyweightDuel(event: SportEvent): boolean {
 }
 
 // ==========================================
-// 4. FOKUS-DERBYS (Nur DE & UK)
+// 4. FOKUS-DERBYS & RIVALRIES
 // ==========================================
 const RELEVANT_DERBIES: [string, string][] = [
+  // Fußball
   ["Bayern", "Dortmund"],
   ["Dortmund", "Schalke"],
   ["Stuttgart", "Karlsruhe"],
   ["Arsenal", "Tottenham"],
   ["Liverpool", "Manchester United"],
   ["Manchester City", "Manchester United"],
+  // NEU: College Football Rivalries
+  ["Ohio State", "Michigan"],
+  ["Alabama", "Auburn"],
+  ["Texas", "Oklahoma"],
+  ["Army", "Navy"],
+  ["Florida", "Georgia"],
+  ["USC", "Notre Dame"],
+  ["Florida State", "Miami"],
 ];
 
 function isDerby(home = "", away = ""): boolean {
@@ -135,8 +145,7 @@ function isEventLive(timeStr?: string): boolean {
 
     const diffMinutes = (now.getTime() - eventTime.getTime()) / (1000 * 60);
     
-    // Läuft, wenn es vor max. 15 Minuten begonnen hat und seit höchstens 2,5 Stunden (150 Min) läuft
-    return diffMinutes >= -15 && diffMinutes <= 150;
+    return diffMinutes >= -15 && diffMinutes <= 200; // College Football dauert oft länger (bis zu 3,5h)
   } catch (e) {
     return false;
   }
@@ -165,7 +174,7 @@ function getEventScore(event: SportEvent): number {
   }
 
   if (isDerby(event.homeTeam, event.awayTeam)) {
-    score += 30;
+    score += 35; // Derbys knallen richtig rein
   }
 
   if (
@@ -204,7 +213,7 @@ export default function Home() {
         const [footRes, cycRes, nflRes, nbaRes, boxRes] = await Promise.all([
           fetch("/api/football/today"),
           fetch("/api/cycling/today"),
-          fetch("/api/nfl/today"),
+          fetch("/api/nfl/today"), // Hier holen wir NFL und NCAA gemeinsam ab
           fetch("/api/nba/today"),
           fetch("/api/boxing/today"),
         ]);
@@ -223,30 +232,46 @@ export default function Home() {
           combinedEvents = [...combinedEvents, ...(cycData.events || [])];
         }
 
-        // 3. NFL
+        // 3. American Football (NFL & NCAA)
         if (nflRes.ok) {
           const nflData = await nflRes.json();
-          const nflEvents: SportEvent[] = (nflData.response || []).map((game: any) => {
+          const amFootballEvents: SportEvent[] = (nflData.response || []).map((game: any) => {
             let bonusScore = 0;
             const stage = (game.game?.stage || "").toLowerCase();
-            if (stage.includes("super bowl")) bonusScore = 100;
-            else if (stage.includes("playoff")) bonusScore = 50;
+            const leagueName = (game.league?.name || "").toLowerCase();
+            
+            // NCAA Erkennung
+            const isCollege = leagueName.includes("ncaa") || leagueName.includes("college");
+
+            // Playoffs, Super Bowl und Bowl Games
+            if (stage.includes("super bowl") || stage.includes("national championship")) bonusScore = 100;
+            else if (stage.includes("playoff") || stage.includes("bowl")) bonusScore = 50;
 
             let timeStr = "";
+            let isGoodTvTime = false;
             try {
               if (game.game?.date?.date) {
-                timeStr = new Date(game.game.date.date).toLocaleTimeString("de-DE", {
+                const gameDate = new Date(game.game.date.date);
+                timeStr = gameDate.toLocaleTimeString("de-DE", {
                   hour: "2-digit",
                   minute: "2-digit",
                 });
+                
+                // Primetime Europa Boost (Spiele zwischen 18 und 23 Uhr)
+                const hour = gameDate.getHours();
+                if (hour >= 18 && hour <= 23) {
+                  isGoodTvTime = true;
+                  bonusScore += 20; 
+                }
               }
             } catch (e) {}
 
             return {
-              id: `nfl-${game.game?.id || Math.random()}`,
+              id: `am-fb-${game.game?.id || Math.random()}`,
               time: timeStr,
-              sport: "🏈 NFL",
-              competition: "NFL",
+              sport: isCollege ? "🏈 NCAA" : "🏈 NFL",
+              competition: isCollege ? "NCAA Football" : "NFL",
+              competitionLogo: game.league?.logo,
               homeTeam: game.teams?.home?.name || "Unbekannt",
               homeLogo: game.teams?.home?.logo,
               awayTeam: game.teams?.away?.name || "Unbekannt",
@@ -254,13 +279,13 @@ export default function Home() {
               details: game.game?.stage || "",
               bonusScore,
               broadcasters: {
-                de: ["RTL / DAZN"], 
+                de: isCollege ? ["ProSieben MAXX / DAZN"] : ["RTL / DAZN"], 
                 usa: [],
                 uk: [],
               },
             };
           });
-          combinedEvents = [...combinedEvents, ...nflEvents];
+          combinedEvents = [...combinedEvents, ...amFootballEvents];
         }
 
         // 4. Basketball (NBA & March Madness)

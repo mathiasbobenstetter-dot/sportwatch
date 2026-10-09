@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     const response = await fetch(
-      `https://v1.american-football.api-sports.io/games?date=${today}&league=1`, // League 1 = NFL
+      `https://v1.american-football.api-sports.io/games?date=${today}&
       {
         headers: {
           "x-apisports-key": apiKey,

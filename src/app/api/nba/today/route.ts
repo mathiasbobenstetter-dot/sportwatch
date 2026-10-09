@@ -28,19 +28,17 @@ export async function GET(request: Request) {
 
     const data = await response.json();
 
-    // TÜRSTEHER: Nur NBA und NCAA durchlassen!
+    // KNALLHARTER TÜRSTEHER: Lässt nur exakt die NBA (12) und NCAA (116) durch!
     const allowedGames = (data.response || []).filter((game: any) => {
-      const leagueName = (game.league?.name || "").toLowerCase();
-      return leagueName.includes("nba") || leagueName.includes("ncaa");
+      const leagueId = game.league?.id;
+      return leagueId === 12 || leagueId === 116;
     });
 
     const events = allowedGames.map((game: any) => {
       let bonusScore = -10; 
       const stage = (game.stage || game.league?.type || "").toLowerCase();
-      const leagueName = (game.league?.name || "").toLowerCase();
-      
+      const isMarchMadness = game.league?.id === 116;
       const isPlayoff = stage.includes("playoff") || stage.includes("finals");
-      const isMarchMadness = leagueName.includes("ncaa") || stage.includes("march madness");
 
       let timeStr = "";
       let isGoodTvTime = false;

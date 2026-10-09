@@ -141,7 +141,9 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       const todayStr = new Date().toISOString().split("T")[0]; 
-      const cacheKey = `tv-guide-cache-v6-${todayStr}`; // Neuer Key für die bereinigte Architektur
+      
+      // NEUER CACHE KEY (v7) ZWINGT DEN BROWSER ZUM NEULADEN DER DATEN
+      const cacheKey = `tv-guide-cache-v7-${todayStr}`; 
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
@@ -163,7 +165,6 @@ export default function Home() {
 
         let combinedEvents: SportEvent[] = [];
 
-        // Extrem sauberes Fetching, da alle Backend-Routen nun { events: [...] } liefern
         const responses = await Promise.all(endpoints.map(ep => fetch(ep).catch(() => null)));
         
         for (const res of responses) {
@@ -175,7 +176,7 @@ export default function Home() {
           }
         }
 
-        // Türsteher-Filter
+        // Türsteher-Filter (Fußball)
         combinedEvents = combinedEvents.filter((event) => {
           if (!event.homeTeam || !event.awayTeam || event.homeTeam === "Unbekannt" || event.awayTeam === "Unbekannt") {
             return false;

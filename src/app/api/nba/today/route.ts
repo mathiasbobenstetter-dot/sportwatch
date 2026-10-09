@@ -1,37 +1,84 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
   const apiKey = process.env.API_FOOTBALL_KEY;
+
   if (!apiKey) {
-    return NextResponse.json({ error: "API Key nicht konfiguriert." }, { status: 500 });
+    return NextResponse.json({ error: "API Key fehlt" }, { status: 500 });
   }
 
-  const today = new Date().toISOString().split("T")[0];
-  const currentMonth = new Date().getMonth() + 1; // 1 = Januar, 3 = März
+  const { searchParams } = new URL(request.url);
+  const queryDate = searchParams.get("date");
+  const targetDate = queryDate || new Date().toISOString().split("T")[0];
 
   try {
-    // Liga 12 = NBA, Liga 116 = NCAA (College Basketball)
-    const [nbaRes, ncaaRes] = await Promise.all([
-      fetch(`https://v1.basketball.api-sports.io/games?date=${today}&league=12`, { 
-        headers: { "x-apisports-key": apiKey }, next: { revalidate: 300 } 
-      }),
-      fetch(`https://v1.basketball.api-sports.io/games?date=${today}&league=116`, { 
-        headers: { "x-apisports-key": apiKey }, next: { revalidate: 300 } 
-      })
-    ]);
+    const response = await fetch(
+      `https://v1.basketball.api-sports.io/games?date=${targetDate}`,
+      {
+        headers: { "x-apisports-key": apiKey },
+        cache: "no-store",
+      }
+    );
 
-    const nbaData = nbaRes.ok ? await nbaRes.json() : { response: [] };
-    const ncaaData = ncaaRes.ok ? await ncaaRes.json() : { response: [] };
-
-    let allGames = [...(nbaData.response || [])];
-
-    // March Madness: Zieht College Basketball im März und April automatisch mit rein
-    if (currentMonth === 3 || currentMonth === 4) {
-      allGames = [...allGames, ...(ncaaData.response || [])];
+    if (!response.ok) {
+      return NextResponse.json({ error: "API Fehler" }, { status: response.status });
     }
 
-    return NextResponse.json({ response: allGames });
-  } catch (error) {
-    return NextResponse.json({ error: "Interner Serverfehler." }, { status: 500 });
+    const data = await response.json();
+
+    const events = (data.response || []).map((game: any) => {
+      let bonusScore = -10; 
+      const stage = (game.stage || game.league?.type || "").toLowerCase();
+      const leagueName = (game.league?.name || "").toLowerCase();
+      
+      const isPlayoff = stage.includes("playoff") || stage.includes("finals");
+      const isMarchMadness = leagueName.includes("ncaa") || stage.includes("march madness");
+
+      let timeStr = "";
+      let isGoodTvTime = false;
+
+      if (game.date) {
+        const gameDate = new Date(game.date);
+        timeStr = gameDate.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+        
+        const hour = gameDate.getHours();
+        isGoodTvTime = hour >= 18 && hour <= 23; 
+
+        if (isMarchMadness) {
+          bonusScore += 30; 
+          if (isGoodTvTime) bonusScore += 40;
+        } else if (isPlayoff) {
+          bonusScore += 25; 
+          if (isGoodTvTime) bonusScore += 50; 
+        } else if (isGoodTvTime) {
+          bonusScore += 15; 
+        }
+      }
+
+      return {
+        id: `bball-${game.id || Math.random()}`,
+        time: timeStr,
+        sport: isMarchMadness ? "🏀 NCAA" : "🏀 NBA",
+        competition: isMarchMadness ? "March Madness" : "NBA",
+        competitionLogo: game.league?.logo || (isMarchMadness ? "https://media.api-sports.io/basketball/leagues/116.png" : "https://media.api-sports.io/basketball/leagues/12.png"),
+        homeTeam: game.teams?.home?.name || "Unbekannt",
+        homeLogo: game.teams?.home?.logo,
+        awayTeam: game.teams?.away?.name || "Unbekannt",
+        awayLogo: game.teams?.away?.logo,
+        details: game.stage || "",
+        bonusScore,
+        broadcasters: { 
+          de: isMarchMadness ? ["ProSieben MAXX", "DAZN"] : ["DAZN", "ProSieben MAXX"], 
+          usa: isMarchMadness ? ["CBS", "TBS", "TNT", "truTV"] : ["ESPN", "ABC", "TNT", "NBA TV"], 
+          uk: isMarchMadness ? ["Sky Sports"] : ["TNT Sports"] 
+        },
+      };
+    });
+
+    return NextResponse.json({ date: targetDate, events });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Server-Fehler", details: error.message }, { status: 500 });
   }
 }

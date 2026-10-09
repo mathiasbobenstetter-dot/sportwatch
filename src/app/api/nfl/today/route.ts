@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const apiKey = process.env.API_FOOTBALL_KEY;
-
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "API Key nicht konfiguriert." },
-      { status: 500 }
-    );
-  }
-
-  // Heutiges Datum im Format YYYY-MM-DD
-  const today = new Date().toISOString().split("T")[0];
-
   try {
+    const today = new Date().toISOString().split("T")[0];
+    const apiKey = process.env.API_FOOTBALL_KEY || "";
+
     const response = await fetch(
-      `https://v1.american-football.api-sports.io/games?date=${today}&
+      `https://v1.american-football.api-sports.io/games?date=${today}`,
       {
         headers: {
           "x-apisports-key": apiKey,

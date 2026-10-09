@@ -198,7 +198,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       const todayStr = new Date().toISOString().split("T")[0]; 
-      const cacheKey = `tv-guide-cache-v3-${todayStr}`; // Neuer Cache-Key
+      const cacheKey = `tv-guide-cache-v4-${todayStr}`; // Neuer Cache-Key für die 80-Punkte-Regel
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
@@ -361,12 +361,26 @@ export default function Home() {
           return true; 
         });
 
+        // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)
         );
 
-        const finalTop = sortedEvents.slice(0, 4);
-        const finalOther = sortedEvents.slice(4);
+        // --- NEU: Mindest-Score für Must See ---
+        const MIN_MUST_SEE_SCORE = 80; 
+        
+        const finalTop: SportEvent[] = [];
+        const finalOther: SportEvent[] = [];
+
+        sortedEvents.forEach((event) => {
+          // Ein Event darf nur in die Top 4, wenn es mindestens 80 Punkte hat
+          if (finalTop.length < 4 && getEventScore(event) >= MIN_MUST_SEE_SCORE) {
+            finalTop.push(event);
+          } else {
+            finalOther.push(event);
+          }
+        });
+        // --- ENDE NEU ---
 
         setTopEvents(finalTop);
         setOtherEvents(finalOther);

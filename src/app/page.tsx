@@ -198,7 +198,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       const todayStr = new Date().toISOString().split("T")[0]; // Ergibt sauber "2026-10-09"
-const cacheKey = `tv-guide-cache-${todayStr}`;
+      const cacheKey = `tv-guide-cache-${todayStr}`;
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
@@ -346,6 +346,26 @@ const cacheKey = `tv-guide-cache-${todayStr}`;
           const boxData = await boxRes.json();
           combinedEvents = [...combinedEvents, ...(boxData.events || [])];
         }
+
+        // --- NEUER FILTER-BLOCK START ---
+        combinedEvents = combinedEvents.filter((event) => {
+          // 1. Platzhalter-Spiele ohne Teams (NCAA "Unbekannt") rausschmeißen
+          if (!event.homeTeam || !event.awayTeam || event.homeTeam === "Unbekannt" || event.awayTeam === "Unbekannt") {
+            return false;
+          }
+          
+          // 2. Falsche "Premier League" Spiele (wie aus Südafrika) ignorieren
+          if (event.competition === "Premier League") {
+            const fakeTeams = ["Tabankulu", "Amawele", "Mamelodi", "Kaizer Chiefs", "Orlando Pirates"];
+            const isFakeMatch = fakeTeams.some(
+              (fake) => event.homeTeam?.includes(fake) || event.awayTeam?.includes(fake)
+            );
+            if (isFakeMatch) return false;
+          }
+          
+          return true; // Alle anderen Spiele dürfen durch!
+        });
+        // --- NEUER FILTER-BLOCK ENDE ---
 
         // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(

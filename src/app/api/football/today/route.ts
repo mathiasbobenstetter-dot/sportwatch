@@ -82,6 +82,7 @@ export async function GET(request: Request) {
       standingsByLeague[lId] = await getLeagueStandings(lId, apiKey);
     }
 
+    // HIER IST DER REPARIERTE UND ERWEITERTE TEIL:
     const events = filteredFixtures.map((item: any) => {
       const leagueId = item.league?.id;
       const tvInfo = LEAGUE_BROADCASTERS[leagueId] || { de: [], usa: [], uk: [] };
@@ -96,8 +97,11 @@ export async function GET(request: Request) {
         }),
         sport: "⚽",
         competition: item.league.name,
+        competitionLogo: item.league.logo, // NEU: Wappen der Liga (z.B. Bundesliga)
         homeTeam: item.teams.home.name,
+        homeLogo: item.teams.home.logo,    // NEU: Wappen des Heimteams
         awayTeam: item.teams.away.name,
+        awayLogo: item.teams.away.logo,    // NEU: Wappen des Auswärtsteams
         homeRank: standings[item.teams.home.name] || null,
         awayRank: standings[item.teams.away.name] || null,
         broadcasters: tvInfo,

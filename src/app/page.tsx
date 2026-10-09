@@ -197,8 +197,8 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchAllEvents() {
-      const todayStr = new Date().toLocaleDateString("de-DE");
-      const cacheKey = `tv-guide-cache-${todayStr}`;
+      const todayStr = new Date().toISOString().split("T")[0]; // Ergibt sauber "2026-10-09"
+const cacheKey = `tv-guide-cache-${todayStr}`;
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {

@@ -198,7 +198,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchAllEvents() {
       const todayStr = new Date().toISOString().split("T")[0]; 
-      const cacheKey = `tv-guide-cache-v4-${todayStr}`; // Neuer Cache-Key für die 80-Punkte-Regel
+      const cacheKey = `tv-guide-cache-v5-${todayStr}`; // Cache-Key für die Sender-Updates
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
@@ -268,7 +268,6 @@ export default function Home() {
               time: timeStr,
               sport: isCollege ? "🏈 NCAA" : "🏈 NFL",
               competition: isCollege ? "NCAA Football" : "NFL",
-              // Fallback: Wenn die API kein Logo liefert, zwingen wir das richtige rein
               competitionLogo: game.league?.logo || (isCollege ? "https://media.api-sports.io/american-football/leagues/2.png" : "https://media.api-sports.io/american-football/leagues/1.png"),
               homeTeam: game.teams?.home?.name || "Unbekannt",
               homeLogo: game.teams?.home?.logo,
@@ -276,10 +275,11 @@ export default function Home() {
               awayLogo: game.teams?.away?.logo,
               details: game.game?.stage || "",
               bonusScore,
+              // NEU: Vollständige US/UK Broadcaster für Football
               broadcasters: {
-                de: isCollege ? ["ProSieben MAXX / DAZN"] : ["RTL / DAZN"], 
-                usa: [],
-                uk: [],
+                de: isCollege ? ["ProSieben MAXX", "DAZN"] : ["RTL", "DAZN", "Prime Video"], 
+                usa: isCollege ? ["ESPN", "ABC", "FOX", "CBS"] : ["CBS", "FOX", "NBC", "ESPN", "Prime Video"],
+                uk: ["Sky Sports"],
               },
             };
           });
@@ -326,7 +326,6 @@ export default function Home() {
               time: timeStr,
               sport: isMarchMadness ? "🏀 NCAA" : "🏀 NBA",
               competition: isMarchMadness ? "March Madness" : "NBA",
-              // Fallback für Basketball Logos
               competitionLogo: game.league?.logo || (isMarchMadness ? "https://media.api-sports.io/basketball/leagues/116.png" : "https://media.api-sports.io/basketball/leagues/12.png"),
               homeTeam: game.teams?.home?.name || "Unbekannt",
               homeLogo: game.teams?.home?.logo,
@@ -334,7 +333,12 @@ export default function Home() {
               awayLogo: game.teams?.away?.logo,
               details: game.stage || "",
               bonusScore,
-              broadcasters: { de: [broadcaster], usa: [], uk: [] },
+              // NEU: Vollständige US/UK Broadcaster für Basketball
+              broadcasters: { 
+                de: [broadcaster], 
+                usa: isMarchMadness ? ["CBS", "TBS", "TNT", "truTV"] : ["ESPN", "ABC", "TNT", "NBA TV"], 
+                uk: isMarchMadness ? ["Sky Sports"] : ["TNT Sports"] 
+              },
             };
           });
           combinedEvents = [...combinedEvents, ...nbaEvents];
@@ -366,21 +370,19 @@ export default function Home() {
           (a, b) => getEventScore(b) - getEventScore(a)
         );
 
-        // --- NEU: Mindest-Score für Must See ---
+        // Mindest-Score für Must See
         const MIN_MUST_SEE_SCORE = 80; 
         
         const finalTop: SportEvent[] = [];
         const finalOther: SportEvent[] = [];
 
         sortedEvents.forEach((event) => {
-          // Ein Event darf nur in die Top 4, wenn es mindestens 80 Punkte hat
           if (finalTop.length < 4 && getEventScore(event) >= MIN_MUST_SEE_SCORE) {
             finalTop.push(event);
           } else {
             finalOther.push(event);
           }
         });
-        // --- ENDE NEU ---
 
         setTopEvents(finalTop);
         setOtherEvents(finalOther);

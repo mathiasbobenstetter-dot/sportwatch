@@ -1,74 +1,50 @@
-export interface Broadcasters {
-  de: string[];
-  usa: string[];
-  uk: string[];
-}
-
-export const LEAGUE_BROADCASTERS: Record<number, Broadcasters> = {
-  // Bundesliga
-  78: {
-    de: ["Sky", "DAZN"],
-    usa: ["ESPN+"],
-    uk: ["Sky Sports"],
+export const LEAGUE_BROADCASTERS: Record<number, { de: string[], usa: string[], uk: string[] }> = {
+  // 2: UEFA Champions League
+  2: { 
+    de: ["DAZN", "Prime Video"], 
+    usa: ["Paramount+", "CBS"], 
+    uk: ["TNT Sports", "Amazon Prime"] 
   },
-  // 2. Bundesliga
-  79: {
-    de: ["Sky", "RTL"],
-    usa: ["ESPN+"],
-    uk: ["Sky Sports"],
+  // 3: UEFA Europa League
+  3: { 
+    de: ["RTL", "RTL+"], 
+    usa: ["Paramount+", "CBS"], 
+    uk: ["TNT Sports"] 
   },
-  // 3. Liga
-  80: {
-    de: ["MagentaSport", "Free TV (MDR/BR/etc.)"],
-    usa: [],
-    uk: [],
-  },
-  // DFB-Pokal
-  81: {
-    de: ["Sky", "ARD/ZDF"],
-    usa: ["ESPN+"],
-    uk: ["Premier Sports"],
-  },
-  // Premier League
+  // 39: Premier League
   39: {
     de: ["Sky"],
     usa: ["NBC", "Peacock", "USA Network"],
-    uk: ["Sky Sports", "TNT Sports", "Prime Video"],
+    uk: ["Sky Sports", "TNT Sports"]
   },
-  // UEFA Champions League
-  2: {
-    de: ["DAZN", "Prime Video", "ZDF (Finale)"],
-    usa: ["Paramount+", "CBS"],
-    uk: ["TNT Sports", "Prime Video"],
+  // 78: Bundesliga (VfB Stuttgart & Co.)
+  78: { 
+    de: ["Sky", "DAZN"], 
+    usa: ["ESPN+"], 
+    uk: ["Sky Sports"] 
   },
-  // UEFA Europa League
-  3: {
-    de: ["RTL", "RTL+"],
+  // 81: DFB-Pokal
+  81: {
+    de: ["Sky", "ARD", "ZDF"],
+    usa: ["ESPN+"],
+    uk: [] // In der UK meistens kein fester Broadcaster für DFB Pokal
+  },
+  // 140: La Liga (Spanien)
+  140: {
+    de: ["DAZN"],
+    usa: ["ESPN+"],
+    uk: ["Viaplay", "ITV"]
+  },
+  // 135: Serie A (Italien)
+  135: {
+    de: ["DAZN"],
     usa: ["Paramount+"],
-    uk: ["TNT Sports"],
+    uk: ["TNT Sports"]
   },
-  // UEFA Conference League
-  847: {
-    de: ["RTL+"],
-    usa: ["Paramount+"],
-    uk: ["TNT Sports"],
-  },
-  // UEFA Nations League
-  5: {
-    de: ["ARD/ZDF", "RTL", "DAZN"],
-    usa: ["FOX Sports", "FuboTV"],
-    uk: ["ITV", "Channel 4"],
-  },
-  // World Cup
-  1: {
-    de: ["ARD/ZDF", "MagentaTV"],
-    usa: ["FOX Sports", "Telemundo"],
-    uk: ["BBC", "ITV"],
-  },
-  // Euro Championship
-  4: {
-    de: ["ARD/ZDF", "RTL", "MagentaTV"],
-    usa: ["FOX Sports"],
-    uk: ["BBC", "ITV"],
-  },
+  // 71: Campeonato Brasileiro Série A (Brasilien)
+  71: {
+    de: ["Sportdigital"],
+    usa: ["Paramount+", "Premiere"],
+    uk: ["Fanatiz"]
+  }
 };

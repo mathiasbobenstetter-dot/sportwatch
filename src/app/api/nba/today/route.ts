@@ -28,7 +28,13 @@ export async function GET(request: Request) {
 
     const data = await response.json();
 
-    const events = (data.response || []).map((game: any) => {
+    // TÜRSTEHER: Nur NBA und NCAA durchlassen!
+    const allowedGames = (data.response || []).filter((game: any) => {
+      const leagueName = (game.league?.name || "").toLowerCase();
+      return leagueName.includes("nba") || leagueName.includes("ncaa");
+    });
+
+    const events = allowedGames.map((game: any) => {
       let bonusScore = -10; 
       const stage = (game.stage || game.league?.type || "").toLowerCase();
       const leagueName = (game.league?.name || "").toLowerCase();

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { ALLOWED_LEAGUE_IDS } from "@/data/competitions";
 import { LEAGUE_BROADCASTERS } from "@/data/broadcasters";
 
+export const dynamic = "force-dynamic"; // <--- VERHINDERT NEXT.JS CACHING
+
 // Cache für Tabellenstände (vermeidet unnötige API-Calls)
 const standingsCache = new Map<number, Record<string, number>>();
 
@@ -57,6 +59,7 @@ export async function GET(request: Request) {
         headers: {
           "x-apisports-key": apiKey,
         },
+        cache: "no-store" // <--- ERZWINGT IMMER FRISCHE DATEN
       }
     );
 
@@ -82,7 +85,6 @@ export async function GET(request: Request) {
       standingsByLeague[lId] = await getLeagueStandings(lId, apiKey);
     }
 
-    // HIER IST DER REPARIERTE UND ERWEITERTE TEIL:
     const events = filteredFixtures.map((item: any) => {
       const leagueId = item.league?.id;
       const tvInfo = LEAGUE_BROADCASTERS[leagueId] || { de: [], usa: [], uk: [] };
@@ -97,11 +99,11 @@ export async function GET(request: Request) {
         }),
         sport: "⚽",
         competition: item.league.name,
-        competitionLogo: item.league.logo, // NEU: Wappen der Liga (z.B. Bundesliga)
+        competitionLogo: item.league.logo, // Wappen der Liga
         homeTeam: item.teams.home.name,
-        homeLogo: item.teams.home.logo,    // NEU: Wappen des Heimteams
+        homeLogo: item.teams.home.logo,    // Wappen des Heimteams
         awayTeam: item.teams.away.name,
-        awayLogo: item.teams.away.logo,    // NEU: Wappen des Auswärtsteams
+        awayLogo: item.teams.away.logo,    // Wappen des Auswärtsteams
         homeRank: standings[item.teams.home.name] || null,
         awayRank: standings[item.teams.away.name] || null,
         broadcasters: tvInfo,

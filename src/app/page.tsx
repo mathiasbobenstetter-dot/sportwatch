@@ -41,10 +41,10 @@ const COMPETITION_WEIGHTS: Record<string, number> = {
   "Klassiker": 80,
   "Monument": 80,
   "NFL": 80,
-  "NCAA Football": 75, // NEU: College Football
   "NBA": 75,
   "Boxing World Championship": 75,
   "2. Bundesliga": 70,
+  "NCAA Football": 69, // College Football knapp unter 2. Bundesliga
   "UEFA European Under-21 Championship": 65,
   "FIFA U-20 World Cup": 60,
   "UEFA European Under-19 Championship": 60,
@@ -110,7 +110,7 @@ const RELEVANT_DERBIES: [string, string][] = [
   ["Arsenal", "Tottenham"],
   ["Liverpool", "Manchester United"],
   ["Manchester City", "Manchester United"],
-  // NEU: College Football Rivalries
+  // College Football Rivalries
   ["Ohio State", "Michigan"],
   ["Alabama", "Auburn"],
   ["Texas", "Oklahoma"],
@@ -145,7 +145,7 @@ function isEventLive(timeStr?: string): boolean {
 
     const diffMinutes = (now.getTime() - eventTime.getTime()) / (1000 * 60);
     
-    return diffMinutes >= -15 && diffMinutes <= 200; // College Football dauert oft länger (bis zu 3,5h)
+    return diffMinutes >= -15 && diffMinutes <= 200; 
   } catch (e) {
     return false;
   }
@@ -174,7 +174,7 @@ function getEventScore(event: SportEvent): number {
   }
 
   if (isDerby(event.homeTeam, event.awayTeam)) {
-    score += 35; // Derbys knallen richtig rein
+    score += 35; 
   }
 
   if (
@@ -197,8 +197,8 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchAllEvents() {
-      const todayStr = new Date().toISOString().split("T")[0]; // Ergibt sauber "2026-10-09"
-      const cacheKey = `tv-guide-cache-${todayStr}`;
+      const todayStr = new Date().toISOString().split("T")[0]; 
+      const cacheKey = `tv-guide-cache-v3-${todayStr}`; // Neuer Cache-Key
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
@@ -213,7 +213,7 @@ export default function Home() {
         const [footRes, cycRes, nflRes, nbaRes, boxRes] = await Promise.all([
           fetch("/api/football/today"),
           fetch("/api/cycling/today"),
-          fetch("/api/nfl/today"), // Hier holen wir NFL und NCAA gemeinsam ab
+          fetch("/api/nfl/today"), 
           fetch("/api/nba/today"),
           fetch("/api/boxing/today"),
         ]);
@@ -240,10 +240,8 @@ export default function Home() {
             const stage = (game.game?.stage || "").toLowerCase();
             const leagueName = (game.league?.name || "").toLowerCase();
             
-            // NCAA Erkennung
             const isCollege = leagueName.includes("ncaa") || leagueName.includes("college");
 
-            // Playoffs, Super Bowl und Bowl Games
             if (stage.includes("super bowl") || stage.includes("national championship")) bonusScore = 100;
             else if (stage.includes("playoff") || stage.includes("bowl")) bonusScore = 50;
 
@@ -257,7 +255,6 @@ export default function Home() {
                   minute: "2-digit",
                 });
                 
-                // Primetime Europa Boost (Spiele zwischen 18 und 23 Uhr)
                 const hour = gameDate.getHours();
                 if (hour >= 18 && hour <= 23) {
                   isGoodTvTime = true;
@@ -271,7 +268,8 @@ export default function Home() {
               time: timeStr,
               sport: isCollege ? "🏈 NCAA" : "🏈 NFL",
               competition: isCollege ? "NCAA Football" : "NFL",
-              competitionLogo: game.league?.logo,
+              // Fallback: Wenn die API kein Logo liefert, zwingen wir das richtige rein
+              competitionLogo: game.league?.logo || (isCollege ? "https://media.api-sports.io/american-football/leagues/2.png" : "https://media.api-sports.io/american-football/leagues/1.png"),
               homeTeam: game.teams?.home?.name || "Unbekannt",
               homeLogo: game.teams?.home?.logo,
               awayTeam: game.teams?.away?.name || "Unbekannt",
@@ -328,7 +326,8 @@ export default function Home() {
               time: timeStr,
               sport: isMarchMadness ? "🏀 NCAA" : "🏀 NBA",
               competition: isMarchMadness ? "March Madness" : "NBA",
-              competitionLogo: game.league?.logo,
+              // Fallback für Basketball Logos
+              competitionLogo: game.league?.logo || (isMarchMadness ? "https://media.api-sports.io/basketball/leagues/116.png" : "https://media.api-sports.io/basketball/leagues/12.png"),
               homeTeam: game.teams?.home?.name || "Unbekannt",
               homeLogo: game.teams?.home?.logo,
               awayTeam: game.teams?.away?.name || "Unbekannt",
@@ -347,14 +346,11 @@ export default function Home() {
           combinedEvents = [...combinedEvents, ...(boxData.events || [])];
         }
 
-        // --- NEUER FILTER-BLOCK START ---
+        // Türsteher-Filter
         combinedEvents = combinedEvents.filter((event) => {
-          // 1. Platzhalter-Spiele ohne Teams (NCAA "Unbekannt") rausschmeißen
           if (!event.homeTeam || !event.awayTeam || event.homeTeam === "Unbekannt" || event.awayTeam === "Unbekannt") {
             return false;
           }
-          
-          // 2. Falsche "Premier League" Spiele (wie aus Südafrika) ignorieren
           if (event.competition === "Premier League") {
             const fakeTeams = ["Tabankulu", "Amawele", "Mamelodi", "Kaizer Chiefs", "Orlando Pirates"];
             const isFakeMatch = fakeTeams.some(
@@ -362,12 +358,9 @@ export default function Home() {
             );
             if (isFakeMatch) return false;
           }
-          
-          return true; // Alle anderen Spiele dürfen durch!
+          return true; 
         });
-        // --- NEUER FILTER-BLOCK ENDE ---
 
-        // Sortierung nach dynamischem Score
         const sortedEvents = combinedEvents.sort(
           (a, b) => getEventScore(b) - getEventScore(a)
         );
@@ -398,7 +391,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-6 max-w-3xl mx-auto font-sans">
-      {/* Header */}
       <header className="flex flex-col items-center justify-center py-4">
         <h1 className="text-2xl font-bold tracking-tight">
           💣TV Guide💣
@@ -408,7 +400,6 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Loading & Error States */}
       {loading && (
         <div className="p-4 bg-slate-900/80 rounded-xl text-slate-400 animate-pulse border border-slate-800">
           Lade heutige Highlights...
@@ -421,17 +412,14 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hinweis wenn keine Live-Events da sind */}
       {!loading && !error && !hasEvents && (
         <div className="p-8 mb-8 bg-slate-900/60 rounded-xl text-center text-slate-400 border border-slate-800/80">
           Heute stehen keine Events in deinen ausgewählten Ligen & Rennen an.
         </div>
       )}
 
-      {/* Live-Events werden nur gerendert, wenn welche da sind */}
       {!loading && !error && hasEvents && (
         <div className="space-y-8 mb-8">
-          {/* SECTION 1: MUST SEE (Top 4) */}
           {topEvents.length > 0 && (
             <section>
               <div className="flex items-center gap-2 mb-4">
@@ -446,14 +434,14 @@ export default function Home() {
                   const vfbMatch = isVfBStuttgart(event.homeTeam, event.awayTeam);
                   const derbyMatch = isDerby(event.homeTeam, event.awayTeam);
                   const clHeavyMatch = isCLHeavyweightDuel(event);
-                  const isLive = isEventLive(event.time); // Prüft, ob es gerade läuft
+                  const isLive = isEventLive(event.time); 
 
                   return (
                     <div
                       key={event.id}
                       className={`p-4 bg-slate-900 border-2 rounded-xl shadow-lg transition flex flex-col gap-3 ${
                         isLive
-                          ? "border-red-500 shadow-red-950/50 animate-pulse" // Roter Pulsier-Rahmen wenn live
+                          ? "border-red-500 shadow-red-950/50 animate-pulse" 
                           : vfbMatch
                           ? "border-red-500/60 shadow-red-950/30"
                           : "border-emerald-500/30 shadow-emerald-950/20 hover:border-emerald-500/60"
@@ -463,7 +451,6 @@ export default function Home() {
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="text-xl">{event.sport}</span>
                           
-                          {/* Ligen-Badge mit optionalem Logo */}
                           <span className="text-xs px-2.5 py-1 bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-md font-semibold flex items-center gap-1.5">
                             {event.competitionLogo && (
                               <img src={event.competitionLogo} alt="" className="w-4 h-4 object-contain" />
@@ -486,7 +473,6 @@ export default function Home() {
                             )}
                           </span>
 
-                          {/* Teams & Logos */}
                           <div className="font-bold text-slate-100 text-base flex items-center gap-2">
                             {event.homeTeam ? (
                               <>
@@ -518,7 +504,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Uhrzeit oder LIVE-Badge */}
                         {isLive ? (
                           <div className="text-xs font-mono font-bold text-white bg-red-600 px-3 py-1 rounded-lg shrink-0 flex items-center gap-1.5 shadow-md animate-bounce">
                             <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
@@ -533,7 +518,6 @@ export default function Home() {
                         )}
                       </div>
 
-                      {/* Broadcaster Badges */}
                       <div className="pt-2 border-t border-slate-800 flex flex-wrap gap-2 text-xs text-slate-300">
                         {event.broadcasters?.de?.length > 0 && (
                           <span className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-md text-slate-200">
@@ -558,7 +542,6 @@ export default function Home() {
             </section>
           )}
 
-          {/* SECTION 2: WEITERE EVENTS */}
           {otherEvents.length > 0 && (
             <section>
               <h2 className="text-lg font-semibold mb-3 text-slate-400 border-b border-slate-800 pb-2">
@@ -616,7 +599,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Uhrzeit oder LIVE-Badge für "Weitere Events" */}
                         {isLive ? (
                           <div className="text-[11px] font-mono font-bold text-white bg-red-600 px-2.5 py-0.5 rounded shrink-0 flex items-center gap-1 animate-pulse">
                             <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
@@ -631,7 +613,6 @@ export default function Home() {
                         )}
                       </div>
 
-                      {/* Broadcaster Badges */}
                       <div className="pt-1.5 border-t border-slate-800/40 flex flex-wrap gap-1.5 text-[11px] text-slate-400">
                         {event.broadcasters?.de?.length > 0 && (
                           <span className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-slate-300">

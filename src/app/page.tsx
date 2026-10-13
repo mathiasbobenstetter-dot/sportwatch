@@ -143,7 +143,7 @@ export default function Home() {
       const todayStr = new Date().toISOString().split("T")[0]; 
       
       // NEUER CACHE KEY (v7) ZWINGT DEN BROWSER ZUM NEULADEN DER DATEN
-      const cacheKey = `tv-guide-cache-v7-${todayStr}`; 
+      const cacheKey = `tv-guide-cache-v8-${todayStr}`; 
 
       const cachedData = localStorage.getItem(cacheKey);
       if (cachedData) {
